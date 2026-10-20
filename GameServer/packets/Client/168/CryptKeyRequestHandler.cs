@@ -1,10 +1,14 @@
+using System.Reflection;
 using DOL.GS.ServerProperties;
+using DOL.Logging;
 
 namespace DOL.GS.PacketHandler.Client.v168
 {
 	[PacketHandlerAttribute(PacketHandlerType.TCP, eClientPackets.CryptKeyRequest, "Handles crypt key requests", eClientStatus.None)]
 	public class CryptKeyRequestHandler : PacketHandler
 	{
+		private static readonly Logger log = LoggerManager.Create(MethodBase.GetCurrentMethod().DeclaringType);
+
 		protected override void HandlePacketInternal(GameClient client, GSPacketIn packet)
 		{
 			// for 1.115c+ The First client packet Changes.
@@ -30,9 +34,33 @@ namespace DOL.GS.PacketHandler.Client.v168
 			}
 			else
 			{
-				// if the DataSize is above 7 then the RC4 key is bundled
+				// if the DataSize is above 7 then a key is bundled with this request.
 				if (packet.DataSize > 7)
 				{
+					// 1.130+ clients bundle an RSA-encrypted key-transport message here (the client
+					// generated a random symmetric key and encrypted it under the server's RSA public
+					// key). Capture the raw bytes so the key-transport format can be confirmed before
+					// decrypting. Launcher-agnostic: fires for any client that reaches this point with
+					// a bundled key while 1.130 crypto is enabled.
+					if (Rsa1130.Enabled)
+					{
+						long resume = packet.Position;
+						int payloadLen = packet.DataSize;
+						byte[] raw = new byte[payloadLen];
+						packet.Position = 0;
+						packet.Read(raw, 0, payloadLen);
+						packet.Position = resume; // leave the stream where the existing code expects it
+
+						if (log.IsInfoEnabled)
+						{
+							log.Info($"[1130-crypto] key-transport request from {client.TcpEndpointAddress}, " +
+							         $"client version {client.Version}, payload {payloadLen} bytes");
+							log.Info(DOL.Marshal.ToHexDump($"[1130-crypto] raw key-transport payload ({payloadLen} bytes)", raw));
+						}
+						// Decrypt/RC4 wiring follows once the OAEP params are confirmed from this dump.
+						return;
+					}
+
 					if (Properties.CLIENT_ENABLE_ENCRYPTION_RC4)
 					{
 						var length = packet.ReadIntLowEndian();
