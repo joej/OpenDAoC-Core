@@ -318,6 +318,11 @@ namespace DOL.GS
 				if (!InitComponent(Properties.InitProperties, "Server Properties Lookup"))
 					return false;
 
+				//---------------------------------------------------------------
+				//Try to load the 1.130 RSA private key (no-op unless client_enable_1130_crypto)
+				if (!InitComponent(DOL.GS.PacketHandler.Rsa1130.Init(), "1.130 RSA Key Load"))
+					return false;
+
 				// -----------------------------------------------------------
 				// Init Discord Client Manager
 				if (!InitComponent(InitDiscordClientManager(), "Setup Discord Client Manager"))
