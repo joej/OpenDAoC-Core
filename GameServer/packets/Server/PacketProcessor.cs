@@ -327,6 +327,10 @@ namespace DOL.GS.PacketHandler
                 if (!ValidatePacketSize(packetBuffer, packetSize))
                     return;
 
+                // 1.130 clients expect RC4-encrypted server packets once the handshake is done.
+                if (Encoding.EncryptionState == eEncryptionState.PseudoRC4Encrypted)
+                    Encoding.EncryptPacket(packetBuffer, 0, false);
+
                 if (_sendContext.CurrentArgs == null)
                 {
                     _sendContext.CurrentArgs = GetAvailableTcpSendArgs();

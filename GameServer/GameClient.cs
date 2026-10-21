@@ -370,6 +370,55 @@ namespace DOL.GS
                     break;
                 }
 
+                // 1.130 crypto: a 1.130 client sends plaintext 0xF4 (version) then, once encryption
+                // is being set up, an RSA key-transport, after which all packets are RC4-encrypted.
+                if (DOL.GS.PacketHandler.Rsa1130.Enabled && Version is eClientVersion.Version1130)
+                {
+                    // Deterministic handshake-state gate (no size heuristics):
+                    //   NotEncrypted      -> plaintext 0xF4 version; flows normally so we reply 0x22.
+                    //   RSAEncrypted      -> set the instant we send the 0x22 crypt-key reply; the NEXT
+                    //                        packet the client sends IS the RSA key-transport. Decrypt
+                    //                        it; the Mythic-OAEP lHash check self-validates (a non-
+                    //                        key-transport packet fails to decode and we reject).
+                    //   PseudoRC4Encrypted-> RC4 is up; decrypt every packet before checksum + handling.
+                    var enc = PacketProcessor.Encoding;
+                    if (enc.EncryptionState == eEncryptionState.RSAEncrypted)
+                    {
+                        // The chunk stream is everything after the 2-byte size field. The size field
+                        // (0x280=640) under-counts the real chunk bytes (650 = 5x130) by 10, so use the
+                        // full framed length instead: packetLength = sizefield + HDR_SIZE(12).
+                        int bodyStart = currentOffset + 2;
+                        int bodyLen = packetLength - 2;
+                        byte[] rc4Key = null;
+                        if (bodyStart + bodyLen <= endPosition)
+                        {
+                            var body = new ReadOnlySpan<byte>(buffer, bodyStart, bodyLen);
+                            rc4Key = DOL.GS.PacketHandler.Rsa1130.RecoverRc4Key(body);
+                        }
+
+                        if (rc4Key != null)
+                        {
+                            enc.SBox = rc4Key;
+                            enc.EncryptionState = eEncryptionState.PseudoRC4Encrypted;
+                            if (log.IsInfoEnabled)
+                                log.Info($"[1130-crypto] RC4 established for {TcpEndpointAddress}");
+                            currentOffset += packetLength;
+                            continue;   // consumed; do not checksum/handle
+                        }
+
+                        if (log.IsWarnEnabled)
+                            log.Warn($"[1130-crypto] key-transport decrypt failed for {TcpEndpointAddress} -> disconnecting");
+                        Disconnect();
+                        return;
+                    }
+
+                    if (enc.EncryptionState == eEncryptionState.PseudoRC4Encrypted)
+                    {
+                        // RC4 established: decrypt the payload in place before checksum + handling.
+                        enc.DecryptPacket(buffer, currentOffset, false);
+                    }
+                }
+
                 int packetEnd = currentOffset + packetLength;
                 int calcCheck = PacketProcessor.CalculateChecksum(buffer, currentOffset, packetLength - 2);
                 int pakCheck = (buffer[packetEnd - 2] << 8) | (buffer[packetEnd - 1]);

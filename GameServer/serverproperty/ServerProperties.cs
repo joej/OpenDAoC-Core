@@ -111,7 +111,7 @@ namespace DOL.GS.ServerProperties
 		/// <summary>
 		/// Path (relative to the server root) to the PEM RSA private key used to decrypt 1.130+ key transport.
 		/// </summary>
-		[ServerProperty("system", "client_rsa_private_key_file", "PEM RSA private key file for 1.130+ key-transport decryption, relative to server root", "config/rsa-private.pem")]
+		[ServerProperty("system", "client_rsa_private_key_file", "PEM RSA private key file for 1.130+ key-transport decryption, relative to server root", "config/game-rsa-private.pem")]
 		public static string CLIENT_RSA_PRIVATE_KEY_FILE;
 
 		/// <summary>
