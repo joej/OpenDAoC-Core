@@ -157,6 +157,10 @@ namespace DOL.GS.PacketHandler
             }
         }
 
+        /// <summary>True if an inbound handler is registered for this packet code (for diagnostics).</summary>
+        public bool HasInboundHandler(int code) =>
+            code >= 0 && code < _packetHandlers.Length && _packetHandlers[code] != null;
+
         public void ProcessInboundPacket(GSPacketIn packet)
         {
             int code = packet.Code;
@@ -428,6 +432,12 @@ namespace DOL.GS.PacketHandler
 
                 _sendContext.CurrentArgs.Buffer[_sendContext.Position] = packetBuffer[0];
                 _sendContext.CurrentArgs.Buffer[_sendContext.Position + 1] = packetBuffer[1];
+
+                // 1.130 clients expect RC4-encrypted server packets once the handshake is done. The
+                // frame now has TCP layout, so encrypt it as TCP (same as ProcessTcpPacket).
+                if (Encoding.EncryptionState == eEncryptionState.PseudoRC4Encrypted)
+                    Encoding.EncryptPacket(_sendContext.CurrentArgs.Buffer, _sendContext.Position, false);
+
                 _sendContext.Position += packetSize;
             }
             finally
