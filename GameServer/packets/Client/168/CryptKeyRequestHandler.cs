@@ -39,25 +39,12 @@ namespace DOL.GS.PacketHandler.Client.v168
 				{
 					// 1.130+ clients bundle an RSA-encrypted key-transport message here (the client
 					// generated a random symmetric key and encrypted it under the server's RSA public
-					// key). Capture the raw bytes so the key-transport format can be confirmed before
-					// decrypting. Launcher-agnostic: fires for any client that reaches this point with
-					// a bundled key while 1.130 crypto is enabled.
+					// key). Only the size is logged: the payload carries the session key.
 					if (Rsa1130.Enabled)
 					{
-						long resume = packet.Position;
-						int payloadLen = packet.DataSize;
-						byte[] raw = new byte[payloadLen];
-						packet.Position = 0;
-						packet.Read(raw, 0, payloadLen);
-						packet.Position = resume; // leave the stream where the existing code expects it
-
 						if (log.IsInfoEnabled)
-						{
 							log.Info($"[1130-crypto] key-transport request from {client.TcpEndpointAddress}, " +
-							         $"client version {client.Version}, payload {payloadLen} bytes");
-							log.Info(DOL.Marshal.ToHexDump($"[1130-crypto] raw key-transport payload ({payloadLen} bytes)", raw));
-						}
-						// Decrypt/RC4 wiring follows once the OAEP params are confirmed from this dump.
+							         $"client version {client.Version}, payload {packet.DataSize} bytes");
 						return;
 					}
 
