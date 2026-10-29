@@ -165,6 +165,10 @@ namespace DOL.GS.PacketHandler
             }
         }
 
+        /// <summary>True if an inbound handler is registered for this packet code (for diagnostics).</summary>
+        public bool HasInboundHandler(int code) =>
+            code >= 0 && code < _packetHandlers.Length && _packetHandlers[code] != null;
+
         public void ProcessInboundPacket(GSPacketIn packet)
         {
             int code = packet.Code;

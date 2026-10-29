@@ -449,6 +449,33 @@ namespace DOL.GS
                 var packet = PooledObjectFactory.GetForTick<GSPacketIn>().Init();
                 packet.Load(buffer, currentOffset, packetLength);
 
+                // 1.130 protocol analysis: log the decrypted C->S opcode so we can see what the
+                // client sends (e.g. the Realm button) and whether a handler exists.
+                if (Uses1130Crypto)
+                {
+                    int code = packet.Code;
+                    // Focus on UNHANDLED opcodes: a 1.130 client packet OpenDAoC has no handler for
+                    // is a protocol gap worth recording. Write to a dedicated file so an unattended
+                    // play session is easy to review (journald can rotate/drop under volume).
+                    if (!PacketProcessor.HasInboundHandler(code))
+                    {
+                        try
+                        {
+                            int payStart = currentOffset + GSPacketIn.HDR_SIZE - 2;
+                            int payLen = System.Math.Min(packetLength - GSPacketIn.HDR_SIZE, 48);
+                            var sb = new System.Text.StringBuilder();
+                            for (int q = 0; q < payLen && payStart + q < endPosition; q++)
+                                sb.Append(buffer[payStart + q].ToString("x2")).Append(' ');
+                            string line = $"{System.DateTime.Now:HH:mm:ss} UNHANDLED 0x{code:X2} (old 0x{code ^ 0xA8:X2}) " +
+                                          $"len={packetLength} acc={(Account?.Name ?? "?")} payload=[{sb.ToString().TrimEnd()}]\n";
+                            System.IO.File.AppendAllText("/tmp/1130-unknown-opcodes.log", line);
+                        }
+                        catch { }
+                        if (log.IsWarnEnabled)
+                            log.Warn($"[1130-pkt] UNHANDLED C->S 0x{code:X2} (old 0x{code ^ 0xA8:X2}) len={packetLength}");
+                    }
+                }
+
                 try
                 {
                     PacketProcessor.ProcessInboundPacket(packet);
