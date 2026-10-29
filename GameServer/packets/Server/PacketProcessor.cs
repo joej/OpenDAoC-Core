@@ -498,6 +498,12 @@ namespace DOL.GS.PacketHandler
                 _udpCounter++;
                 _sendContext.CurrentArgs.Buffer[_sendContext.Position + 2] = (byte) (_udpCounter >> 8);
                 _sendContext.CurrentArgs.Buffer[_sendContext.Position + 3] = (byte) _udpCounter;
+
+                // 1.130 clients decrypt every UDP frame (counter, code, payload) once the handshake is done.
+                // They send their own UDP unencrypted.
+                if (Encoding.EncryptionState == eEncryptionState.PseudoRC4Encrypted)
+                    Encoding.EncryptPacket(_sendContext.CurrentArgs.Buffer, _sendContext.Position, true);
+
                 _sendContext.Position += packetSize;
             }
             finally
