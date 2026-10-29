@@ -16,7 +16,11 @@ namespace DOL.GS.PacketHandler.Client.v168
             string text = $"Client crash ({client}) dll:{dllName} clientUptime:{upTime}sec";
 
             if (log.IsInfoEnabled)
+            {
                 log.Info(text);
+                // Full report (dll name, crash address/registers, uptime) for diagnosing client-side crashes.
+                log.Info($"Client crash payload: {System.Convert.ToHexString(packet.ToArray())}");
+            }
 
             client.Out.SendPlayerQuit(true);
             client.Disconnect();
