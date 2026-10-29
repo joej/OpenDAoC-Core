@@ -77,7 +77,7 @@ namespace DOL.GS.PacketHandler.Client.v168
 				// 1.130 clients encrypt from here: after we reply 0x22, the client's next packet is the
 				// RSA key-transport. Arm RSA state so GameClient decrypts it (OpenDAoC's own RSAEncrypted
 				// assignment lives in a disabled #if block).
-				if (Rsa1130.Enabled && client.Version >= GameClient.eClientVersion.Version1130)
+				if (client.Uses1130Crypto)
 					client.PacketProcessor.Encoding.EncryptionState = eEncryptionState.RSAEncrypted;
 			}
 		}

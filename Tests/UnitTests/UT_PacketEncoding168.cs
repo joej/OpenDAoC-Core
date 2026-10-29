@@ -51,6 +51,27 @@ namespace DOL.GS.Tests
             Assert.That(buf, Is.Not.EqualTo(expected));
         }
 
+        [Test]
+        public void Rsa1130AppliesTo_OnlyVersion1130WithCryptoEnabled()
+        {
+            foreach (GameClient.eClientVersion version in Enum.GetValues<GameClient.eClientVersion>())
+            {
+                Assert.That(Rsa1130.AppliesTo(false, version), Is.False, $"{version}, crypto disabled");
+                Assert.That(Rsa1130.AppliesTo(true, version), Is.EqualTo(version is GameClient.eClientVersion.Version1130), $"{version}, crypto enabled");
+            }
+        }
+
+        // No RSA key is loaded here, so `Rsa1130.Enabled` is false, as on a server with 1.130 crypto turned off.
+        [TestCase(GameClient.eClientVersion.Version1127)]
+        [TestCase(GameClient.eClientVersion.Version1130)]
+        public void Uses1130Crypto_CryptoDisabled_IsFalse(GameClient.eClientVersion version)
+        {
+            GameClient client = new(null) { Version = version };
+
+            Assert.That(Rsa1130.Enabled, Is.False);
+            Assert.That(client.Uses1130Crypto, Is.False);
+        }
+
         private static PacketEncoding168 CreateEncoding(byte[] sbox)
         {
             return new PacketEncoding168

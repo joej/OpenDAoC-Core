@@ -90,6 +90,7 @@ namespace DOL.GS
         public IPacketLib Out { get; set; }
         public PacketProcessor PacketProcessor { get; set; }
         public eClientVersion Version { get; set; } = eClientVersion.VersionNotChecked;
+        public bool Uses1130Crypto => DOL.GS.PacketHandler.Rsa1130.AppliesTo(Version);
         public eClientType ClientType { get; set; } = eClientType.Unknown;
         public eClientAddons ClientAddons { get; set; }
         public string MinorRev { get; set; } = string.Empty;
@@ -372,7 +373,7 @@ namespace DOL.GS
 
                 // 1.130 crypto: a 1.130 client sends plaintext 0xF4 (version) then, once encryption
                 // is being set up, an RSA key-transport, after which all packets are RC4-encrypted.
-                if (DOL.GS.PacketHandler.Rsa1130.Enabled && Version is eClientVersion.Version1130)
+                if (Uses1130Crypto)
                 {
                     // Deterministic handshake-state gate (no size heuristics):
                     //   NotEncrypted      -> plaintext 0xF4 version; flows normally so we reply 0x22.
@@ -440,7 +441,7 @@ namespace DOL.GS
 
                 // 1.130 protocol analysis: log the decrypted C->S opcode so we can see what the
                 // client sends (e.g. the Realm button) and whether a handler exists.
-                if (DOL.GS.PacketHandler.Rsa1130.Enabled && Version is eClientVersion.Version1130)
+                if (Uses1130Crypto)
                 {
                     int code = packet.Code;
                     // Focus on UNHANDLED opcodes: a 1.130 client packet OpenDAoC has no handler for

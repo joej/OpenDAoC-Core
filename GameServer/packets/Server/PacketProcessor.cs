@@ -37,6 +37,10 @@ namespace DOL.GS.PacketHandler
         public static long SendBufferPoolExhaustedCount => Volatile.Read(ref _sendBufferPoolExhaustedCount);
         public IPacketEncoding Encoding { get; } = new PacketEncoding168();
 
+        // Older code paths can set the RC4 state for other clients too, but only 1.130 clients get their
+        // packets decrypted (see `GameClient.Uses1130Crypto`). Everyone else is sent plaintext, as before.
+        private bool EncryptOutbound => _client.Uses1130Crypto && Encoding.EncryptionState is eEncryptionState.PseudoRC4Encrypted;
+
         public PacketProcessor(GameClient client)
         {
             _client = client;
@@ -332,7 +336,7 @@ namespace DOL.GS.PacketHandler
                     return;
 
                 // 1.130 clients expect RC4-encrypted server packets once the handshake is done.
-                if (Encoding.EncryptionState == eEncryptionState.PseudoRC4Encrypted)
+                if (EncryptOutbound)
                     Encoding.EncryptPacket(packetBuffer, 0, false);
 
                 if (_sendContext.CurrentArgs == null)
@@ -435,7 +439,7 @@ namespace DOL.GS.PacketHandler
 
                 // 1.130 clients expect RC4-encrypted server packets once the handshake is done. The
                 // frame now has TCP layout, so encrypt it as TCP (same as ProcessTcpPacket).
-                if (Encoding.EncryptionState == eEncryptionState.PseudoRC4Encrypted)
+                if (EncryptOutbound)
                     Encoding.EncryptPacket(_sendContext.CurrentArgs.Buffer, _sendContext.Position, false);
 
                 _sendContext.Position += packetSize;
@@ -501,7 +505,7 @@ namespace DOL.GS.PacketHandler
 
                 // 1.130 clients decrypt every UDP frame (counter, code, payload) once the handshake is done.
                 // They send their own UDP unencrypted.
-                if (Encoding.EncryptionState == eEncryptionState.PseudoRC4Encrypted)
+                if (EncryptOutbound)
                     Encoding.EncryptPacket(_sendContext.CurrentArgs.Buffer, _sendContext.Position, true);
 
                 _sendContext.Position += packetSize;

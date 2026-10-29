@@ -42,6 +42,15 @@ namespace DOL.GS.PacketHandler
         public const int Rc4KeyLength = 256;
 
         public static bool Enabled => _privateKey != null && Properties.CLIENT_ENABLE_1130_CRYPTO;
+
+        /// <summary>
+        /// Whether a client of this version uses 1.130 crypto on this server. Receiving and sending both
+        /// check this, so a client is encrypted both ways or not at all.
+        /// </summary>
+        public static bool AppliesTo(GameClient.eClientVersion version) => AppliesTo(Enabled, version);
+
+        public static bool AppliesTo(bool enabled, GameClient.eClientVersion version) =>
+            enabled && version is GameClient.eClientVersion.Version1130;
         public static int ModulusBytes => _k;
 
         /// <summary>Init hook for GameServer.Start(). Loads the game RSA private key if 1.130 crypto is on.</summary>
