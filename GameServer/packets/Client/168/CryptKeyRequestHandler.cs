@@ -1,10 +1,14 @@
+using System.Reflection;
 using DOL.GS.ServerProperties;
+using DOL.Logging;
 
 namespace DOL.GS.PacketHandler.Client.v168
 {
 	[PacketHandlerAttribute(PacketHandlerType.TCP, eClientPackets.CryptKeyRequest, "Handles crypt key requests", eClientStatus.None)]
 	public class CryptKeyRequestHandler : PacketHandler
 	{
+		private static readonly Logger log = LoggerManager.Create(MethodBase.GetCurrentMethod().DeclaringType);
+
 		protected override void HandlePacketInternal(GameClient client, GSPacketIn packet)
 		{
 			// for 1.115c+ The First client packet Changes.
@@ -35,7 +39,13 @@ namespace DOL.GS.PacketHandler.Client.v168
 				{
 					// 1.130 clients send their key in the RSA key transport, never here.
 					if (client.Uses1130Crypto)
+					{
+						// Only the size is logged: a bundled key is session key material.
+						if (log.IsInfoEnabled)
+							log.Info($"[1130-crypto] bundled key request from {client.TcpEndpointAddress}, " +
+							         $"client version {client.Version}, payload {packet.DataSize} bytes");
 						return;
+					}
 
 					if (Properties.CLIENT_ENABLE_ENCRYPTION_RC4)
 					{
