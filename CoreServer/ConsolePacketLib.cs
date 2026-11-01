@@ -220,6 +220,7 @@ namespace DOL.GameServerConsole
         public void SendWarmapUpdate(ICollection<IGameKeep> list) { }
         public void SendWarmapDetailUpdate(List<List<byte>> fights, List<List<byte>> groups) { }
         public void SendWarmapBonuses() { }
+        public void SendGroupFinderSettings(byte[] settings) { }
         public bool SendLosCheckRequest(GameObject source, GameObject target, ILosCheckListener listener) { return true; }
         public void SendLivingDataUpdate(GameLiving living, bool updateStrings) { }
         public void SendPlayerTitles() { }
