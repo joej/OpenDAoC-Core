@@ -127,6 +127,7 @@ namespace DOL.GS.PacketHandler
         MasterLevelWindow = 0x13,
         CheckLOSRequest = 0xD0,
         GroupFinderSettings = 0xE7,
+        GroupOptions = 0xB4,
     }
 
     public enum eClientPackets : byte
@@ -219,6 +220,8 @@ namespace DOL.GS.PacketHandler
         GroupFinderRequest = 0xE7,           // 0x4F ^ 168
         QuestDetailRequest = 0x41,           // 0xE9 ^ 168
         GroupMenuAction = 0x98,              // 0x30 ^ 168
+        GroupOptionsSave = 0xB3,             // 0x1B ^ 168
+        GroupOptionsRequest = 0xB4,          // 0x1C ^ 168
     }
 
     /// <summary>
@@ -774,6 +777,7 @@ namespace DOL.GS.PacketHandler
         void SendWarmapDetailUpdate(List<List<byte>> fights, List<List<byte>> groups);
         void SendWarmapBonuses();
         void SendGroupFinderSettings(byte[] settings);
+        void SendGroupOptions(byte[] settings);
 
         //housing
         void SendHouse(House house);
