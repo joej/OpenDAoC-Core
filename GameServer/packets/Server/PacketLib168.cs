@@ -81,6 +81,15 @@ namespace DOL.GS.PacketHandler
 		{
 		}
 
+		public virtual void SendCharacterRenameReply(bool success)
+		{
+			using (var pak = GameLoop.GetObjectForTick<GSTCPPacketOut>().Init(GetPacketCode(eServerPackets.CharacterRenameReply)))
+			{
+				pak.WriteByte((byte) (success ? 1 : 0));
+				SendTCP(pak);
+			}
+		}
+
 		public virtual void SendLoginDenied(eLoginError et)
 		{
 			using (var pak = GameLoop.GetObjectForTick<GSTCPPacketOut>().Init(GetPacketCode(eServerPackets.LoginDenied)))

@@ -163,6 +163,18 @@ namespace DOL.GS.PacketHandler.Client.v168
                 {
                     if (client.Account.Characters[i] != null && client.Account.Characters[i].AccountSlot == charSlot)
                     {
+                        // The client may try to enter the world after a refused rename. A character that needs a new name
+                        // can't be played.
+                        if (ForcedRename.IsRequired(client.Account.Characters[i]))
+                        {
+                            if (log.IsWarnEnabled)
+                                log.Warn($"Refused world entry for {client.Account.Characters[i].Name}: a new name is required (account={client.Account.Name})");
+
+                            client.ActiveCharIndex = -1;
+                            client.Disconnect();
+                            return;
+                        }
+
                         charFound = true;
                         selectedChar = client.Account.Characters[i].Name;
                         await client.LoadPlayer(i);
