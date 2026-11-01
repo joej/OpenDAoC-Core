@@ -209,6 +209,11 @@ namespace DOL.GS.PacketHandler
         WarmapBonusRequest = 0x66,           // 0xCE ^ 168
         ShowWarmapRequest = 0x48,            // 0xE0 ^ 168
         WorldInitRequest = 0xD4,             // 0x7C ^ 168
+        MarketExplorerClosed = 0x1D,         // 0xB5 ^ 168
+        MapZoneChanged = 0x42,               // 0xEA ^ 168
+        WarmapRefresh = 0x43,                // 0xEB ^ 168
+        LeaveWorld = 0xAC,                   // 0x04 ^ 168
+        QuitNotice = 0xB8,                   // 0x10 ^ 168
     }
 
     /// <summary>
