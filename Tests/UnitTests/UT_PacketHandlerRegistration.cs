@@ -26,6 +26,8 @@ namespace DOL.GS.Tests
         [TestCase(eClientPackets.QuitNotice)]
         [TestCase(eClientPackets.GroupFinderSave)]
         [TestCase(eClientPackets.GroupFinderRequest)]
+        [TestCase(eClientPackets.QuestDetailRequest)]
+        [TestCase(eClientPackets.GroupMenuAction)]
         public void IgnoredPacket_HasHandler(eClientPackets code)
         {
             Assert.That(HandlersByCode().ContainsKey((int) code), Is.True, $"no handler for 0x{(int) code:X2}");

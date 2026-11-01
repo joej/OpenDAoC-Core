@@ -70,4 +70,32 @@ namespace DOL.GS.PacketHandler.Client.v168
                 Log.Debug($"Client quitting (account={client.Account?.Name}, flag={packet.ReadByte()})");
         }
     }
+
+    // Probably sent when a quest journal entry is selected whose details the client doesn't have. Two bytes from the
+    // selection; their meaning is not known yet.
+    [PacketHandlerAttribute(PacketHandlerType.TCP, eClientPackets.QuestDetailRequest, "Quest detail request", eClientStatus.PlayerInGame)]
+    public class QuestDetailRequestHandler : PacketHandler
+    {
+        private static readonly Logger Log = LoggerManager.Create(MethodBase.GetCurrentMethod().DeclaringType);
+
+        protected override void HandlePacketInternal(GameClient client, GSPacketIn packet)
+        {
+            if (Log.IsDebugEnabled)
+                Log.Debug($"Quest detail request (player={client.Player?.Name}, data=0x{packet.ReadShort():X4})");
+        }
+    }
+
+    // Sent by a group menu button, and instead of DialogResponse when the player answers yes to a dialog with code 2.
+    // One zero byte. Which group action it stands for is not known yet.
+    [PacketHandlerAttribute(PacketHandlerType.TCP, eClientPackets.GroupMenuAction, "Group menu action", eClientStatus.PlayerInGame)]
+    public class GroupMenuActionHandler : PacketHandler
+    {
+        private static readonly Logger Log = LoggerManager.Create(MethodBase.GetCurrentMethod().DeclaringType);
+
+        protected override void HandlePacketInternal(GameClient client, GSPacketIn packet)
+        {
+            if (Log.IsDebugEnabled)
+                Log.Debug($"Group menu action (player={client.Player?.Name})");
+        }
+    }
 }

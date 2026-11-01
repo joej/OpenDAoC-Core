@@ -217,6 +217,8 @@ namespace DOL.GS.PacketHandler
         QuitNotice = 0xB8,                   // 0x10 ^ 168
         GroupFinderSave = 0xE6,              // 0x4E ^ 168
         GroupFinderRequest = 0xE7,           // 0x4F ^ 168
+        QuestDetailRequest = 0x41,           // 0xE9 ^ 168
+        GroupMenuAction = 0x98,              // 0x30 ^ 168
     }
 
     /// <summary>
