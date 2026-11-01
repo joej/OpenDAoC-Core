@@ -131,6 +131,20 @@ namespace DOL.GS.PacketHandler.Client.v168
 
                     client.Out.SendMessage(LanguageMgr.GetTranslation(client.Account.Language, "PlayerPositionUpdateHandler.Entered", description), eChatType.CT_System, eChatLoc.CL_SystemWindow);
                     client.Out.SendMessage(screenDescription, eChatType.CT_ScreenCenterSmaller, eChatLoc.CL_SystemWindow);
+                    // Debug (1.130 protocol analysis): retail sends 0xA6 right after the zone-entered message
+                    // (seen: A6 72 00 00 entering Eriksstaad). Send the zone ID the same way and watch the client.
+                    if (client.Version is GameClient.eClientVersion.Version1130)
+                    {
+                        using (var pak = GameLoop.GetObjectForTick<GSTCPPacketOut>().Init(0xA6))
+                        {
+                            pak.WriteShortLowEndian(newZone.ID);
+                            pak.WriteByte(0);
+                            client.Out.SendTCP(pak);
+                        }
+
+                        if (log.IsWarnEnabled)
+                            log.Warn($"[1130-A6] sent A6 {newZone.ID & 0xFF:X2} {newZone.ID >> 8:X2} 00 to {client.Player.Name}: zone {newZone.ID} '{newZone.Description}', region {newZone.ZoneRegion.ID}");
+                    }
                     client.Player.LastPositionUpdateZone = newZone;
                 }
 
