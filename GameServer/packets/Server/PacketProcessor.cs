@@ -12,6 +12,8 @@ namespace DOL.GS.PacketHandler
     public class PacketProcessor
     {
         private static readonly Logger log = LoggerManager.Create(MethodBase.GetCurrentMethod().DeclaringType);
+        // Debug (test/client-windows): a logger name the default logconfig doesn't filter (it caps PacketProcessor at Info).
+        private static readonly Logger _clientWindowsLog = LoggerManager.Create("DOL.GS.ClientWindowsDebug");
 
         private const int SEND_ARGS_POOL_SIZE = 4;
 
@@ -179,6 +181,13 @@ namespace DOL.GS.PacketHandler
             }
 
             IPacketHandler packetHandler = _packetHandlers[code];
+
+            // Debug (test/client-windows): log the client window packets under test, handled or not.
+            if (_clientWindowsLog.IsDebugEnabled && code is 0x1D or 0x41 or 0x42 or 0x43 or 0x52 or 0x98 or 0xAC or 0xB3 or 0xB4 or 0xB8 or 0xE6 or 0xE7)
+            {
+                string account = _client.Account != null ? _client.Account.Name : _client.TcpEndpointAddress;
+                _clientWindowsLog.Debug($"[client-windows] C->S 0x{code:X2} size={packet.PacketSize} account={account} version={_client.Version} bytes={Convert.ToHexString(packet.ToArray())}");
+            }
 
             if (packetHandler == null)
                 return;
