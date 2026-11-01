@@ -126,6 +126,7 @@ namespace DOL.GS.PacketHandler
         Realm = 0xFE,
         MasterLevelWindow = 0x13,
         CheckLOSRequest = 0xD0,
+        CharacterRenameReply = 0x52,
     }
 
     public enum eClientPackets : byte
@@ -209,6 +210,7 @@ namespace DOL.GS.PacketHandler
         WarmapBonusRequest = 0x66,           // 0xCE ^ 168
         ShowWarmapRequest = 0x48,            // 0xE0 ^ 168
         WorldInitRequest = 0xD4,             // 0x7C ^ 168
+        CharacterRenameRequest = 0x52,       // 0xFA ^ 168
     }
 
     /// <summary>
@@ -619,6 +621,7 @@ namespace DOL.GS.PacketHandler
         void SendWarlockChamberEffect(GamePlayer player);
         void SendVersionAndCryptKey();
         void SendLoginDenied(eLoginError et);
+        void SendCharacterRenameReply(bool success);
         void SendLoginGranted();
         void SendLoginGranted(byte color);
         void SendSessionID();

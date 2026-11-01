@@ -77,6 +77,7 @@ namespace DOL.GameServerConsole
         public void SendWarlockChamberEffect(GamePlayer player) { }
         public void SendVersionAndCryptKey() { }
         public void SendLoginDenied(eLoginError et) { }
+        public void SendCharacterRenameReply(bool success) { }
         public void SendLoginGranted() { }
         public void SendLoginGranted(byte color) { } // help for rvr AND pvp servers
         public void SendSessionID() { }
