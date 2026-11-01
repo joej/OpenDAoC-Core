@@ -126,6 +126,7 @@ namespace DOL.GS.PacketHandler
         Realm = 0xFE,
         MasterLevelWindow = 0x13,
         CheckLOSRequest = 0xD0,
+        GroupFinderSettings = 0xE7,
     }
 
     public enum eClientPackets : byte
@@ -214,6 +215,8 @@ namespace DOL.GS.PacketHandler
         WarmapRefresh = 0x43,                // 0xEB ^ 168
         LeaveWorld = 0xAC,                   // 0x04 ^ 168
         QuitNotice = 0xB8,                   // 0x10 ^ 168
+        GroupFinderSave = 0xE6,              // 0x4E ^ 168
+        GroupFinderRequest = 0xE7,           // 0x4F ^ 168
     }
 
     /// <summary>
@@ -768,6 +771,7 @@ namespace DOL.GS.PacketHandler
         void SendWarmapUpdate(ICollection<IGameKeep> list);
         void SendWarmapDetailUpdate(List<List<byte>> fights, List<List<byte>> groups);
         void SendWarmapBonuses();
+        void SendGroupFinderSettings(byte[] settings);
 
         //housing
         void SendHouse(House house);
