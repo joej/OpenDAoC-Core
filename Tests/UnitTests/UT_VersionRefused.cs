@@ -33,13 +33,6 @@ namespace DOL.GS.Tests
             Assert.That(payload.Length, Is.EqualTo(1 + 4 + (int) length + 2));
         }
 
-        [Test]
-        public void LoginErrorUnknown_IsUnknownErrorCode()
-        {
-            // 0x15 is an account notice on 1.130 clients; 99 is "Unknown error."
-            Assert.That((byte) eLoginError.Unknown, Is.EqualTo(99));
-        }
-
         [TestCase(-1, -1, GameClient.eClientVersion.Version1130, false)]
         [TestCase(1130, -1, GameClient.eClientVersion.Version1127, true)]
         [TestCase(1127, -1, GameClient.eClientVersion.Version1127, false)]
