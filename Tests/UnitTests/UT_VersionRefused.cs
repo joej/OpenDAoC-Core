@@ -9,11 +9,14 @@ namespace DOL.GS.Tests
     [TestFixture]
     public class UT_VersionRefused
     {
+        // The properties keep their defaults only once loaded by the server.
+        [SetUp]
         [TearDown]
-        public void ResetVersionRange()
+        public void ResetVersionProperties()
         {
             Properties.CLIENT_VERSION_MIN = -1;
             Properties.CLIENT_VERSION_MAX = -1;
+            Properties.CLIENT_VERSION_REFUSAL = true;
         }
 
         // The client reads [u8 flag][u32 little-endian length][string, at most 0x20 bytes][u16] and acts on a non-zero flag.
@@ -54,6 +57,16 @@ namespace DOL.GS.Tests
             Properties.CLIENT_VERSION_MIN = 1127;
 
             Assert.That(GameClient.IsRefusedBeforeVersionReply(GameClient.eClientVersion.Version1126), Is.False);
+        }
+
+        // Turned off, out-of-range clients go through to the login check, as before 0x23 was sent.
+        [Test]
+        public void IsRefusedBeforeVersionReply_TurnedOff_IsLeftToLogin()
+        {
+            Properties.CLIENT_VERSION_MIN = 1130;
+            Properties.CLIENT_VERSION_REFUSAL = false;
+
+            Assert.That(GameClient.IsRefusedBeforeVersionReply(GameClient.eClientVersion.Version1127), Is.False);
         }
     }
 }
