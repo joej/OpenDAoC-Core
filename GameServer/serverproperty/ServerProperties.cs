@@ -96,6 +96,12 @@ namespace DOL.GS.ServerProperties
 		public static int CLIENT_VERSION_MAX;
 
 		/// <summary>
+		/// Tell a refused client its version is refused (0x23)
+		/// </summary>
+		[ServerProperty("system", "client_version_refusal", "Tell a client whose version is not handled, or is outside client_version_min/client_version_max, that its version is refused (it shows \"Incorrect client version\"). Off: such a client is disconnected without a reason, and 1.127+ clients outside the range are refused at login instead", true)]
+		public static bool CLIENT_VERSION_REFUSAL;
+
+		/// <summary>
 		/// Send LoginDenied AccountNotice to 1.130 clients as is
 		/// </summary>
 		[ServerProperty("system", "login_account_notice", "Send the account notice login error to 1.130 clients. An unpatched client then opens the publisher's account site in the browser. Off: they are told \"Unknown error.\" instead", false)]

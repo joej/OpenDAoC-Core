@@ -292,9 +292,10 @@ namespace DOL.GS
         // Clients from 1.127 on are refused at the version request, because they encrypt from the version reply on and a
         // later refusal (LoginDenied) would only be readable if the encryption matches. Older clients are still refused
         // at login (`AbstractServerRules.IsAllowedToConnect`), since 0x23 is only confirmed for 1.127 and 1.130.
+        // With client_version_refusal off, every client is left to the login check.
         public static bool IsRefusedBeforeVersionReply(eClientVersion version)
         {
-            if (version < eClientVersion.Version1127)
+            if (!Properties.CLIENT_VERSION_REFUSAL || version < eClientVersion.Version1127)
                 return false;
 
             eClientVersion min = (eClientVersion) Properties.CLIENT_VERSION_MIN;
@@ -304,14 +305,17 @@ namespace DOL.GS
 
         private void RefuseVersion()
         {
-            try
+            if (Properties.CLIENT_VERSION_REFUSAL)
             {
-                Socket.Send(VersionRefusedFrame);
-            }
-            catch (Exception e)
-            {
-                if (log.IsDebugEnabled)
-                    log.Debug($"Couldn't send the version refusal to {TcpEndpointAddress}: {e.Message}");
+                try
+                {
+                    Socket.Send(VersionRefusedFrame);
+                }
+                catch (Exception e)
+                {
+                    if (log.IsDebugEnabled)
+                        log.Debug($"Couldn't send the version refusal to {TcpEndpointAddress}: {e.Message}");
+                }
             }
 
             Disconnect();
