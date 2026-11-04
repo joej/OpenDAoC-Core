@@ -284,6 +284,39 @@ namespace DOL.GS
                 ProcessInboundTcpBytes(size);
         }
 
+        // S->C 0x23, sent instead of the version reply (0x22): the client stops waiting and shows "Incorrect client version.
+        // Please try patching again." No encryption has been agreed yet, so any client can read it.
+        // Payload: a non-zero flag (the only byte the client acts on), an empty u32-length string, a u16.
+        public static ReadOnlySpan<byte> VersionRefusedFrame => [0x00, 0x07, (byte) eServerPackets.VersionRefused, 0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00];
+
+        // Clients from 1.127 on are refused at the version request, because they encrypt from the version reply on and a
+        // later refusal (LoginDenied) would only be readable if the encryption matches. Older clients are still refused
+        // at login (`AbstractServerRules.IsAllowedToConnect`), since 0x23 is only confirmed for 1.127 and 1.130.
+        public static bool IsRefusedBeforeVersionReply(eClientVersion version)
+        {
+            if (version < eClientVersion.Version1127)
+                return false;
+
+            eClientVersion min = (eClientVersion) Properties.CLIENT_VERSION_MIN;
+            eClientVersion max = (eClientVersion) Properties.CLIENT_VERSION_MAX;
+            return (min is not eClientVersion.VersionNotChecked && version < min) || (max is not eClientVersion.VersionNotChecked && version > max);
+        }
+
+        private void RefuseVersion()
+        {
+            try
+            {
+                Socket.Send(VersionRefusedFrame);
+            }
+            catch (Exception e)
+            {
+                if (log.IsDebugEnabled)
+                    log.Debug($"Couldn't send the version refusal to {TcpEndpointAddress}: {e.Message}");
+            }
+
+            Disconnect();
+        }
+
         private bool CheckVersion(int size)
         {
             // This currently assumes the first packet is received in full, which may not be the case.
@@ -331,7 +364,16 @@ namespace DOL.GS
                 if (log.IsWarnEnabled)
                     log.Warn($"{TcpEndpointAddress} client Version {version} not handled on this server.");
 
-                Disconnect();
+                RefuseVersion();
+            }
+            else if (IsRefusedBeforeVersionReply(ver))
+            {
+                Version = eClientVersion.VersionUnknown;
+
+                if (log.IsInfoEnabled)
+                    log.Info($"{TcpEndpointAddress} client version {version} refused (client_version_min, client_version_max)");
+
+                RefuseVersion();
             }
             else
             {

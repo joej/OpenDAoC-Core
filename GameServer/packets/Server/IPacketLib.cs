@@ -30,6 +30,7 @@ namespace DOL.GS.PacketHandler
         PositionAndObjectID = 0x20,
         DebugMode = 0x21,
         CryptKey = 0x22,
+        VersionRefused = 0x23,
         SessionID = 0x28,
         PingReply = 0x29,
         LoginGranted = 0x2A,
@@ -234,7 +235,7 @@ namespace DOL.GS.PacketHandler
         TooManyFreeAccountsLoggedIn = 0x12,         // The server is at max population for free accounts. Please try later.
         AccountNeedsInvite = 0x13,                  // Your account needs an invite for this server.
         BannedAccount = 0x14,                       // Your account has been banned.
-        Unknown = 0x15,                             // Unknown error.
+        Unknown = 0x63,                             // Unknown error. (0x15 shows an account notice with a link on 1.130.)
         NotAuthorizedToUseExpansionVersion = 0x17,  // You are not authorized to use the expansion version.
         OnlyOneFreeAccountPerPc = 0x18,             // Only one free account per PC is allowed.
         RequestedServerNotFound = 0x19,             // Requested server wasn't found.
