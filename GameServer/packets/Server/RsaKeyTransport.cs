@@ -63,6 +63,8 @@ namespace DOL.GS.PacketHandler
                     if (log.IsInfoEnabled)
                         log.Info($"[rsa-rc4] RC4 established for {client.TcpEndpointAddress}");
 
+                    PacketTrace.Event(client, "encryption: RC4 established");
+
                     return false;
                 }
 
@@ -70,6 +72,8 @@ namespace DOL.GS.PacketHandler
 
                 if (log.IsInfoEnabled)
                     log.Info($"[rsa-rc4] no key transport from {client.TcpEndpointAddress}; continuing unencrypted");
+
+                PacketTrace.Event(client, "encryption: no key transport, unencrypted");
 
                 return true;
             }

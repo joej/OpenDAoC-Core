@@ -179,7 +179,10 @@ namespace DOL.GS.PacketHandler
             IPacketHandler packetHandler = _packetHandlers[code];
 
             if (packetHandler == null)
+            {
+                PacketTrace.Event(_client, $"no handler for C->S 0x{code:X2}");
                 return;
+            }
 
             if (!_packetPreprocessor.CanProcessPacket(_client, packet))
             {
@@ -329,6 +332,7 @@ namespace DOL.GS.PacketHandler
                 if (!ValidatePacketSize(packetBuffer, packetSize))
                     return;
 
+                PacketTrace.Outbound(_client, false, packetBuffer.AsSpan(0, packetSize));
                 _client.Encryption.EncryptOutbound(_client, packetBuffer, 0, false);
 
                 if (_sendContext.CurrentArgs == null)
@@ -386,6 +390,8 @@ namespace DOL.GS.PacketHandler
 
                 if (!ValidatePacketSize(packetBuffer, packetSize))
                     return;
+
+                PacketTrace.Outbound(_client, false, packetBuffer.AsSpan(0, (int) packet.Length), true);
 
                 if (_sendContext.CurrentArgs == null)
                 {
@@ -492,6 +498,8 @@ namespace DOL.GS.PacketHandler
                 _udpCounter++;
                 _sendContext.CurrentArgs.Buffer[_sendContext.Position + 2] = (byte) (_udpCounter >> 8);
                 _sendContext.CurrentArgs.Buffer[_sendContext.Position + 3] = (byte) _udpCounter;
+
+                PacketTrace.Outbound(_client, true, _sendContext.CurrentArgs.Buffer.AsSpan(_sendContext.Position, packetSize));
 
                 // Encrypted clients decrypt every UDP frame (counter, code, payload); they send their own UDP unencrypted.
                 _client.Encryption.EncryptOutbound(_client, _sendContext.CurrentArgs.Buffer, _sendContext.Position, true);

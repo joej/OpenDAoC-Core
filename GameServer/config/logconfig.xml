@@ -67,6 +67,15 @@
 			archiveSuffixFormat=".{1:yyyy-MM-dd}.{0:0}"
 			archiveAboveSize="104857600"
 			archiveEvery="Day" />
+		<target name="packetTraceFile" xsi:type="File"
+			layout="${message}"
+			fileName="${logDirectory}/packet-trace.log"
+			keepFileOpen="true"
+			archiveFileName="${logDirectory}/packet-trace.log"
+			archiveSuffixFormat=".{1:yyyy-MM-dd}.{0:0}"
+			archiveAboveSize="104857600"
+			archiveEvery="Day"
+			maxArchiveDays="7" />
 		<target name="inventoryFile" xsi:type="File"
 			layout="${date:format=MM/dd HH\:mm\:ss} | ${message}"
 			fileName="${logDirectory}/inventory.log"
@@ -95,6 +104,13 @@
 			minLevel="Trace"
 			writeTo="inventoryFile"
 			final="true" />
+		<!-- Every packet in and out, one line each (`PacketTrace`). Login and key packets are masked, but the trace shows
+		     account names, addresses and all game traffic. Set enabled="true" and restart to turn it on. -->
+		<logger name="DOL.GS.PacketTrace"
+			minLevel="Trace"
+			writeTo="packetTraceFile"
+			final="true"
+			enabled="false" />
 
 		<!-- Filters -->
 		<logger name="DOL.GS.PacketHandler.PacketProcessor"

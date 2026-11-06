@@ -69,6 +69,7 @@ namespace DOL.GS.PacketHandler.Client.v168
 				{
 					client.Encryption = RsaKeyTransport.Instance;
 					client.PacketProcessor.Encoding.EncryptionState = eEncryptionState.RSAEncrypted;
+					PacketTrace.Event(client, "encryption: RSA key transport expected next");
 				}
 			}
 		}

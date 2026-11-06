@@ -93,6 +93,8 @@ namespace DOL.GS
         public PacketProcessor PacketProcessor { get; set; }
         public eClientVersion Version { get; set; } = eClientVersion.VersionNotChecked;
         public IClientEncryption Encryption { get; set; } = NoClientEncryption.Instance; // Set once, at the version reply.
+        public int TraceConnectionNumber { get; private set; } // `PacketTrace`
+        public string TraceRemoteEndPoint { get; private set; }
         public eClientType ClientType { get; set; } = eClientType.Unknown;
         public eClientAddons ClientAddons { get; set; }
         public string MinorRev { get; set; } = string.Empty;
@@ -252,6 +254,7 @@ namespace DOL.GS
                 }
 
                 ClientState = eClientState.Disconnected;
+                PacketTrace.Event(this, "close");
                 PacketProcessor?.Dispose();
                 ClientService.Instance.OnClientDisconnect(this);
                 base.OnDisconnect(); // Frees session ID. Must be done after calling `ClientService.OnClientDisconnect`.
@@ -313,6 +316,7 @@ namespace DOL.GS
             {
                 try
                 {
+                    PacketTrace.Outbound(this, false, VersionRefusedFrame);
                     Socket.Send(VersionRefusedFrame);
                 }
                 catch (Exception e)
@@ -372,6 +376,7 @@ namespace DOL.GS
                 if (log.IsWarnEnabled)
                     log.Warn($"{TcpEndpointAddress} client Version {version} not handled on this server.");
 
+                PacketTrace.Event(this, $"version {version} not handled, refused");
                 RefuseVersion();
             }
             else if (IsRefusedBeforeVersionReply(ver))
@@ -381,6 +386,7 @@ namespace DOL.GS
                 if (log.IsInfoEnabled)
                     log.Info($"{TcpEndpointAddress} client version {version} refused (client_version_min, client_version_max)");
 
+                PacketTrace.Event(this, $"version {version} outside client_version_min/client_version_max, refused");
                 RefuseVersion();
             }
             else
@@ -388,6 +394,7 @@ namespace DOL.GS
                 if (log.IsInfoEnabled)
                     log.Info($"Incoming connection from {TcpEndpointAddress} using client version {version}");
 
+                PacketTrace.Event(this, $"version {version}");
                 Version = ver;
                 Out = packetLib;
                 PacketProcessor = new PacketProcessor(this);
@@ -424,6 +431,7 @@ namespace DOL.GS
 
                 if (!Encryption.DecryptInbound(this, buffer, currentOffset, packetLength))
                 {
+                    PacketTrace.InboundKeyTransport(this, packetLength - 2);
                     currentOffset += packetLength;
                     continue;
                 }
@@ -443,12 +451,14 @@ namespace DOL.GS
                     if (log.IsDebugEnabled)
                         log.Debug(Marshal.ToHexDump("Last received bytes: ", buffer));
 
+                    PacketTrace.Event(this, $"bad checksum (packet 0x{pakCheck:X4}, calculated 0x{calcCheck:X4}), disconnecting");
                     Disconnect();
                     return;
                 }
 
                 var packet = GameLoop.GetObjectForTick<GSPacketIn>().Init();
                 packet.Load(buffer, currentOffset, packetLength);
+                PacketTrace.Inbound(this, false, packet);
 
                 try
                 {
@@ -478,6 +488,8 @@ namespace DOL.GS
         {
             if (ClientState is eClientState.Disconnected)
                 return;
+
+            PacketTrace.Event(this, "socket closed");
 
             // Posting the disconnect logic to the game loop isn't necessary in most cases.
             // However, this can sometimes be called outside the game loop, for example if a client fails to connect properly.
@@ -527,6 +539,10 @@ namespace DOL.GS
                 TcpAddress = ipEndPoint.Address;
 
             base.OnConnect(sessionId);
+
+            TraceConnectionNumber = PacketTrace.NextConnectionNumber();
+            TraceRemoteEndPoint = Socket?.RemoteEndPoint?.ToString();
+            PacketTrace.Event(this, $"open {TraceRemoteEndPoint}");
 
             // `OnConnect` is exclusively called from outside the game loop.
             ClientService.Instance.Post(static state =>

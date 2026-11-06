@@ -1167,6 +1167,7 @@ namespace DOL.GS
 				try
 				{
 					packet.Load(state.Buffer, 0, state.Size);
+					PacketTrace.Inbound(client, true, packet);
 					client.PacketProcessor.ProcessInboundPacket(packet);
 				}
 				finally
