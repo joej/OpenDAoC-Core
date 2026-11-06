@@ -127,6 +127,8 @@ namespace DOL.GS.PacketHandler
         Realm = 0xFE,
         MasterLevelWindow = 0x13,
         CheckLOSRequest = 0xD0,
+        GroupFinderSettings = 0xE7,
+        GroupOptions = 0xB4,
     }
 
     public enum eClientPackets : byte
@@ -210,6 +212,17 @@ namespace DOL.GS.PacketHandler
         WarmapBonusRequest = 0x66,           // 0xCE ^ 168
         ShowWarmapRequest = 0x48,            // 0xE0 ^ 168
         WorldInitRequest = 0xD4,             // 0x7C ^ 168
+        MarketExplorerClosed = 0x1D,         // 0xB5 ^ 168
+        MapZoneChanged = 0x42,               // 0xEA ^ 168
+        WarmapRefresh = 0x43,                // 0xEB ^ 168
+        LeaveWorld = 0xAC,                   // 0x04 ^ 168
+        QuitNotice = 0xB8,                   // 0x10 ^ 168
+        GroupFinderSave = 0xE6,              // 0x4E ^ 168
+        GroupFinderRequest = 0xE7,           // 0x4F ^ 168
+        QuestDetailRequest = 0x41,           // 0xE9 ^ 168
+        GroupMenuAction = 0x98,              // 0x30 ^ 168
+        GroupOptionsSave = 0xB3,             // 0x1B ^ 168
+        GroupOptionsRequest = 0xB4,          // 0x1C ^ 168
     }
 
     /// <summary>
@@ -765,6 +778,8 @@ namespace DOL.GS.PacketHandler
         void SendWarmapUpdate(ICollection<IGameKeep> list);
         void SendWarmapDetailUpdate(List<List<byte>> fights, List<List<byte>> groups);
         void SendWarmapBonuses();
+        void SendGroupFinderSettings(byte[] settings);
+        void SendGroupOptions(byte[] settings);
 
         //housing
         void SendHouse(House house);

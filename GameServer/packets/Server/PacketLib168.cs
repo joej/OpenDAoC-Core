@@ -3083,6 +3083,27 @@ namespace DOL.GS.PacketHandler
 		{
 		}
 
+		// Only send this in reply to the client's GroupFinderRequest. The client writes the settings into its group
+		// finder window without checking that the window exists, so an unsolicited packet can crash it.
+		public virtual void SendGroupFinderSettings(byte[] settings)
+		{
+			using (var pak = GameLoop.GetObjectForTick<GSTCPPacketOut>().Init(GetPacketCode(eServerPackets.GroupFinderSettings)))
+			{
+				pak.Write(settings, 0, settings.Length);
+				SendTCP(pak);
+			}
+		}
+
+		// Only send this in reply to the client's GroupOptionsRequest, for the same reason as SendGroupFinderSettings.
+		public virtual void SendGroupOptions(byte[] settings)
+		{
+			using (var pak = GameLoop.GetObjectForTick<GSTCPPacketOut>().Init(GetPacketCode(eServerPackets.GroupOptions)))
+			{
+				pak.Write(settings, 0, settings.Length);
+				SendTCP(pak);
+			}
+		}
+
 		public virtual void SendWarmapDetailUpdate(List<List<byte>> fights, List<List<byte>> groups)
 		{
 		}
