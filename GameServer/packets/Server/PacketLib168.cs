@@ -81,6 +81,15 @@ namespace DOL.GS.PacketHandler
 		{
 		}
 
+		public virtual void SendCharacterRenameReply(bool success)
+		{
+			using (var pak = GameLoop.GetObjectForTick<GSTCPPacketOut>().Init(GetPacketCode(eServerPackets.CharacterRenameReply)))
+			{
+				pak.WriteByte((byte) (success ? 1 : 0));
+				SendTCP(pak);
+			}
+		}
+
 		// The client picks the message from the code, and 1.130 changed two of them: 0x15 (and 0x16) is an account
 		// notice that opens the publisher's account site in the browser when the dialog closes, and 99 is "Unknown error.".
 		// Up to 1.127, 0x15 is "Unknown error." and there is no 99 or account notice. 1.128 and 1.129 are untested.

@@ -5,6 +5,7 @@ using System.Net;
 using System.Reflection;
 using System.Threading.Tasks;
 using DOL.Database;
+using DOL.GS.PacketHandler.Client.v168;
 
 namespace DOL.GS.PacketHandler
 {
@@ -77,6 +78,14 @@ namespace DOL.GS.PacketHandler
 
 		public override async void SendCharacterOverview(eRealm realm)
 		{
+			await SendCharacterOverviewAsync(realm);
+		}
+
+		/// <summary>
+		/// Sends the character overview; the returned task completes once the packet is queued.
+		/// </summary>
+		public async Task SendCharacterOverviewAsync(eRealm realm)
+		{
 			if (realm is < eRealm._FirstPlayerRealm or > eRealm._LastPlayerRealm)
 				throw new Exception($"CharacterOverview requested for unknown realm {realm}");
 
@@ -112,6 +121,7 @@ namespace DOL.GS.PacketHandler
 			}
 
 			var itemsByOwnerId = await BuildItemsByOwnerId(charsBySlot, firstSlot, lastSlot);
+			HashSet<string> renameRequired = await ForcedRename.SelectRequiredAsync(charsBySlot.Values);
 
 			using (var pak = GameLoop.GetObjectForTick<GSTCPPacketOut>().Init(GetPacketCode(eServerPackets.CharacterOverview1126)))
 			{
@@ -212,7 +222,8 @@ namespace DOL.GS.PacketHandler
 						armsColor = (ushort) (arms.Emblem != 0 ? arms.Emblem : arms.Color);
 
 					pak.WriteByte((byte) character.Level);
-					pak.WritePascalStringIntLE(character.Name);
+					// A name that isn't all letters makes the client ask for a new one when the player tries to play the character.
+					pak.WritePascalStringIntLE(ForcedRename.OverviewName(character.Name, renameRequired.Contains(character.ObjectId)));
 					pak.WriteIntLowEndian(0x18);
 					pak.WriteByte(1); // always 1 ?
 					pak.WriteByte(character.EyeSize); // seems to be : 0xF0 = eyes, 0x0F = nose

@@ -129,6 +129,7 @@ namespace DOL.GS.PacketHandler
         CheckLOSRequest = 0xD0,
         GroupFinderSettings = 0xE7,
         GroupOptions = 0xB4,
+        CharacterRenameReply = 0x52,
     }
 
     public enum eClientPackets : byte
@@ -223,6 +224,7 @@ namespace DOL.GS.PacketHandler
         GroupMenuAction = 0x98,              // 0x30 ^ 168
         GroupOptionsSave = 0xB3,             // 0x1B ^ 168
         GroupOptionsRequest = 0xB4,          // 0x1C ^ 168
+        CharacterRenameRequest = 0x52,       // 0xFA ^ 168
     }
 
     /// <summary>
@@ -634,6 +636,7 @@ namespace DOL.GS.PacketHandler
         void SendWarlockChamberEffect(GamePlayer player);
         void SendVersionAndCryptKey();
         void SendLoginDenied(eLoginError et);
+        void SendCharacterRenameReply(bool success);
         void SendLoginGranted();
         void SendLoginGranted(byte color);
         void SendSessionID();
