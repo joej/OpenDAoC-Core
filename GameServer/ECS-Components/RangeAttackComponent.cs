@@ -102,6 +102,8 @@ namespace DOL.GS
                     // Clean the RangeAttackTarget at the first shot try even if failed.
                     AutoFireTarget = null;
 
+                    LosTrace.Compare(playerOwner, target, "range");
+
                     if (target is null or not GameLiving)
                     {
                         // Volley check to avoid spam.

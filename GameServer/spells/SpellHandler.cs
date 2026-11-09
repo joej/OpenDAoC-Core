@@ -485,6 +485,7 @@ namespace DOL.GS.Spells
 				// TargetInView is only updated when the player clicks on a skill, selects a target, moves around, or every two seconds when standing still.
 				// Long story short, this isn't very reliable, and there is no simple solution (can't snapshot TargetObject and TarvetInView on skill use for queued spells).
 				HasLos = Caster.TargetInView;
+				LosTrace.Compare(playerCaster, Target, $"spell {Spell.ID}");
 			}
 			else if (Caster is GameNPC npcOwner)
 			{

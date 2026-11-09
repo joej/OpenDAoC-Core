@@ -76,6 +76,15 @@
 			archiveAboveSize="104857600"
 			archiveEvery="Day"
 			maxArchiveDays="7" />
+		<target name="losTraceFile" xsi:type="File"
+			layout="${message}"
+			fileName="${logDirectory}/los-trace.log"
+			keepFileOpen="true"
+			archiveFileName="${logDirectory}/los-trace.log"
+			archiveSuffixFormat=".{1:yyyy-MM-dd}.{0:0}"
+			archiveAboveSize="104857600"
+			archiveEvery="Day"
+			maxArchiveDays="7" />
 		<target name="inventoryFile" xsi:type="File"
 			layout="${date:format=MM/dd HH\:mm\:ss} | ${message}"
 			fileName="${logDirectory}/inventory.log"
@@ -109,6 +118,14 @@
 		<logger name="DOL.GS.PacketTrace"
 			minLevel="Trace"
 			writeTo="packetTraceFile"
+			final="true"
+			enabled="false" />
+
+		<!-- Client "target in view" flag vs. a line-of-sight check, one line per player spell or shot (`LosTrace`). Each line
+		     sends the client an extra 0xD0. Set enabled="true" and restart to turn it on. -->
+		<logger name="DOL.GS.LosTrace"
+			minLevel="Trace"
+			writeTo="losTraceFile"
 			final="true"
 			enabled="false" />
 
