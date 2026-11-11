@@ -25,7 +25,7 @@ namespace DOL.GS
 
             try
             {
-                _view = ServiceObjectStore.UpdateAndGetView<LivingBeingKilled>(ServiceObjectType.LivingBeingKilled);
+                _view = ServiceObjectStore.UpdateAndGetView<LivingBeingKilled>(GameLoop.GameLoopTime);
             }
             catch (Exception e)
             {
@@ -35,7 +35,7 @@ namespace DOL.GS
                 return;
             }
 
-            _view.ExecuteForEach(TickInternal);
+            GameLoop.ExecuteView(_view, TickInternal);
 
             if (Diagnostics.CheckServiceObjectCount)
                 Diagnostics.PrintServiceObjectCount(ServiceName, ref EntityCount, _view.TotalValidCount);
@@ -62,7 +62,7 @@ namespace DOL.GS
             {
                 if (livingBeingKilled != null)
                 {
-                    ServiceObjectStore.Remove(livingBeingKilled);
+                    livingBeingKilled.ServiceObjectId.Unregister();
                     livingBeingKilled.Killed.OnReaperServiceHandlingComplete();
                 }
             }
@@ -75,7 +75,7 @@ namespace DOL.GS
     }
 
     // Temporary objects to be added to `ServiceObjectStore` and consumed by `ReaperService`, representing a living object being killed and waiting to be processed.
-    public class LivingBeingKilled : IServiceObject
+    public class LivingBeingKilled : IServiceObject<LivingBeingKilled>
     {
         public ServiceObjectId ServiceObjectId { get; }
         public GameLiving Killed { get; private set; }
@@ -83,14 +83,14 @@ namespace DOL.GS
 
         private LivingBeingKilled(GameLiving killed, GameObject killer)
         {
-            ServiceObjectId = new(this, ServiceObjectType.LivingBeingKilled);
+            ServiceObjectId = ServiceObjectFactory.CreateId(this);
             Initialize(killed, killer);
         }
 
         public static void Create(GameLiving killed, GameObject killer)
         {
             LivingBeingKilled livingBeingKilled = new(killed, killer);
-            ServiceObjectStore.Add(livingBeingKilled);
+            livingBeingKilled.ServiceObjectId.Register();
         }
 
         private void Initialize(GameLiving killed, GameObject killer)

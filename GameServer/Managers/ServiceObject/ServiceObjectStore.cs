@@ -1,92 +1,88 @@
 using System;
-using System.Linq;
-using DOL.AI;
-using DOL.GS.ServerProperties;
 
 namespace DOL.GS
 {
     public static class ServiceObjectStore
     {
-        private static readonly IServiceObjectArray[] _serviceObjectArrays = CreateServiceObjectArrays();
+        private const int DEFAULT_CAPACITY = 100;
 
-        public static bool Add(IServiceObject serviceObject)
+        // Discovers all service object types in this assembly and publishes their arrays.
+        // Must run before any service objects are registered.
+        public static bool Init()
         {
-            ServiceObjectId id = serviceObject.ServiceObjectId;
-            return _serviceObjectArrays[(int) id.Type].Add(serviceObject);
-        }
+            foreach (Type type in typeof(ServiceObjectStore).Assembly.GetTypes())
+            {
+                foreach (Type interfaceType in type.GetInterfaces())
+                {
+                    if (!interfaceType.IsGenericType ||
+                        interfaceType.GetGenericTypeDefinition() != typeof(IServiceObject<>) ||
+                        interfaceType.GetGenericArguments()[0] != type)
+                    {
+                        continue;
+                    }
 
-        public static bool Remove(IServiceObject serviceObject)
-        {
-            ServiceObjectId id = serviceObject.ServiceObjectId;
-            return _serviceObjectArrays[(int) id.Type].Remove(serviceObject);
+                    IRegistrar registrar = (IRegistrar) Activator.CreateInstance(typeof(Registrar<>).MakeGenericType(type));
+                    registrar.Register();
+                    break;
+                }
+            }
+
+            return true;
         }
 
         // Applies pending additions and removals then returns the list alongside the last valid index.
-        public static ServiceObjectView<T> UpdateAndGetView<T>(ServiceObjectType type) where T : class, IServiceObject
+        public static ServiceObjectView<T> UpdateAndGetView<T>(long now) where T : class, IServiceObject<T>
         {
-            return ((ServiceObjectArrayBase<T>) _serviceObjectArrays[(int) type]).UpdateAndGetView(GameLoop.GameLoopTime);
+            ServiceObjectArrayBase<T> array = ViewSlot<T>.Array ??
+                throw new InvalidOperationException($"{typeof(T)} is not registered in {nameof(ServiceObjectStore)}.");
+
+            return array.UpdateAndGetView(now);
         }
 
-        private static IServiceObjectArray[] CreateServiceObjectArrays()
+        public static ServiceObjectArrayBase<T, TId> GetArray<T, TId>()
+            where T : class, IServiceObject<T>
+            where TId : ServiceObjectId<T>
         {
-            int size = Enum.GetValues<ServiceObjectType>().Max(t => (int) t) + 1;
-            IServiceObjectArray[] arrays = new IServiceObjectArray[size];
-
-            arrays[(int) ServiceObjectType.Client]              = CreateArray<GameClient>(Properties.MAX_PLAYERS);
-            arrays[(int) ServiceObjectType.Brain]               = CreateArray<ABrain>(Properties.MAX_ENTITIES);
-            arrays[(int) ServiceObjectType.AttackComponent]     = CreateArray<AttackComponent>(1250);
-            arrays[(int) ServiceObjectType.CastingComponent]    = CreateArray<CastingComponent>(1250);
-            arrays[(int) ServiceObjectType.Effect]              = CreateArray<ECSGameEffect>(10000);
-            arrays[(int) ServiceObjectType.EffectListComponent] = CreateArray<EffectListComponent>(1250);
-            arrays[(int) ServiceObjectType.MovementComponent]   = CreateArray<MovementComponent>(1250);
-            arrays[(int) ServiceObjectType.CraftComponent]      = CreateArray<CraftComponent>(100);
-            arrays[(int) ServiceObjectType.SubZoneObject]       = CreateArray<SubZoneObject>(Properties.MAX_ENTITIES);
-            arrays[(int) ServiceObjectType.LivingBeingKilled]   = CreateArray<LivingBeingKilled>(200);
-            arrays[(int) ServiceObjectType.Timer]               = CreateArray<ECSGameTimer>(500);
-
-            return arrays;
+            return ArraySlot<T, TId>.Array ??
+                throw new InvalidOperationException($"{typeof(T)} is not registered as a {typeof(TId).Name} owner. Check the interface it implements.");
         }
 
-        private static IServiceObjectArray CreateArray<T>(int capacity) where T : class, IServiceObject
+        public static void Publish<T, TId>(ServiceObjectArrayBase<T, TId> array)
+            where T : class, IServiceObject<T>
+            where TId : ServiceObjectId<T>
         {
-            /* 3 types of array are currently available:
-             * 
-             * ServiceObjectArray:
-             *   Simple array with deferred additions and removals.
-             *   Single threaded update.
-             *   Doesn't support scheduling.
-             *   Scales somewhat poorly with object count (O(n)).
-             *   Memory efficient.
-             *   Best for objects meant to be processed only once, or on every game loop tick.
-             * 
-             * SchedulableServiceObjectArray:
-             *   Inherits ServiceObjectArray, controlled by a timing wheel.
-             *   Single threaded update.
-             *   Supports scheduling.
-             *   Memory efficiency depends on its bucket count.
-             *   Scales well with object count, but has slow updates if objects need to be rescheduled frequently.
-             *   No use case for now.
-             * 
-             * ShardedServiceObjectArray:
-             *   Backed by an array of SchedulableServiceObjectArray.
-             *   Multithreaded update.
-             *   Supports scheduling.
-             *   Scales well with object count, and has fairly fast updates (depending on CPU count) but with a flat overhead.
-             *   Memory efficiency depends on SchedulableServiceObjectArray's bucket count and CPU count.
-             *   Best for everything that ticks much slower than the game loop, if object count is high enough to justify the overhead.
-             */
+            ViewSlot<T>.Array = array;
+            ArraySlot<T, TId>.Array = array;
+        }
 
-            Type type = typeof(T);
-            Type arrayType;
+        public static void Register<T>(int capacity = DEFAULT_CAPACITY) where T : class, IServiceObject<T>
+        {
+            T.CreateArray(capacity).Publish();
+        }
 
-            if (typeof(IShardedServiceObject).IsAssignableFrom(type))
-                arrayType = typeof(ShardedServiceObjectArray<>).MakeGenericType(type);
-            else if (typeof(ISchedulableServiceObject).IsAssignableFrom(type))
-                arrayType = typeof(SchedulableServiceObjectArray<>).MakeGenericType(type);
-            else
-                arrayType = typeof(ServiceObjectArray<>).MakeGenericType(type);
+        private static class ViewSlot<T> where T : class, IServiceObject<T>
+        {
+            public static ServiceObjectArrayBase<T> Array;
+        }
 
-            return (IServiceObjectArray) Activator.CreateInstance(arrayType, capacity);
+        private static class ArraySlot<T, TId>
+            where T : class, IServiceObject<T>
+            where TId : ServiceObjectId<T>
+        {
+            public static ServiceObjectArrayBase<T, TId> Array;
+        }
+
+        private interface IRegistrar
+        {
+            void Register();
+        }
+
+        private sealed class Registrar<T> : IRegistrar where T : class, IServiceObject<T>
+        {
+            public void Register()
+            {
+                Register<T>();
+            }
         }
     }
 }

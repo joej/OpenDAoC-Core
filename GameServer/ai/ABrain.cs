@@ -11,7 +11,7 @@ namespace DOL.AI
     /// <summary>
     /// This class is the base of all artificial intelligence in game objects
     /// </summary>
-    public abstract class ABrain : IShardedServiceObject
+    public abstract class ABrain : IShardedServiceObject<ABrain>
     {
         public FSM FSM { get; set; }
         public ServiceObjectId ServiceObjectId { get; }
@@ -27,7 +27,7 @@ namespace DOL.AI
 
         public ABrain()
         {
-            ServiceObjectId = new(this, ServiceObjectType.Brain);
+            ServiceObjectId = ServiceObjectFactory.CreateId(this);
         }
 
         /// <summary>
@@ -50,7 +50,7 @@ namespace DOL.AI
         /// <returns>true if started</returns>
         public virtual bool Start()
         {
-            if (!ServiceObjectStore.Add(this))
+            if (!ServiceObjectId.Register())
                 return false;
 
             // Offset the first think tick by a random amount so that not too many are grouped in one server tick.
@@ -65,7 +65,7 @@ namespace DOL.AI
         /// <returns>true if stopped</returns>
         public virtual bool Stop()
         {
-            if (!ServiceObjectStore.Remove(this))
+            if (!ServiceObjectId.Unregister())
                 return false;
 
             // Without `IsActive` check, charming a NPC that's returning to spawn would teleport it.

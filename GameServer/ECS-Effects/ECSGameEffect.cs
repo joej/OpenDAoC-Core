@@ -8,7 +8,7 @@ using DOL.Language;
 
 namespace DOL.GS
 {
-    public abstract class ECSGameEffect : IShardedServiceObject, ITickPooledList<ECSGameEffect>
+    public abstract class ECSGameEffect : IShardedServiceObject<ECSGameEffect>, ITickPooledList<ECSGameEffect>
     {
         private State _state;
         private TransitionalState _transitionalState;
@@ -57,9 +57,10 @@ namespace DOL.GS
         public ImmunityType AppliedImmunityType => !TriggersImmunity ? ImmunityType.None : (Owner is GamePlayer ? ImmunityType.Player : ImmunityType.Npc);
         public bool TriggersImmunity { get; set; }
         public int ImmunityDuration { get; protected set; } = 60000;
-        public bool IsBeingReplaced { get; set; } // Used externally to force an effect to be silent (no message, no immunity) when being refreshed.
-        public int LastClientIndex { get; set; } = -1; // Used eternally for effect list updates.
-        public bool NeedsClientUpdate { get; set; } // Used eternally for effect list updates.
+        public bool IsBeingReplaced { get; set; }       // Used externally to force an effect to be silent (no message, no immunity) when being refreshed.
+        public int LastClientIndex { get; set; } = -1;  // Used externally for effect list updates.
+        public bool NeedsClientUpdate { get; set; }     // Used externally for effect list updates.
+        public bool ShouldBeRegistered => Duration > 0 || PulseFreq > 0;
 
         // State properties.
         public bool IsActive => _state is State.Active;
@@ -82,8 +83,8 @@ namespace DOL.GS
         public ECSGameEffect(in ECSGameEffectInitParams initParams)
         {
             Owner = initParams.Target;
-            OwnerPlayer = Owner as GamePlayer; // will be null on NPCs, but here for convenience.
-            ServiceObjectId = new(this, ServiceObjectType.Effect);
+            OwnerPlayer = Owner as GamePlayer;
+            ServiceObjectId = ServiceObjectFactory.CreateId(this);
             Duration = initParams.Duration;
             Effectiveness = initParams.Effectiveness;
             EffectType = eEffect.Unknown; // Should be overridden in subclasses.

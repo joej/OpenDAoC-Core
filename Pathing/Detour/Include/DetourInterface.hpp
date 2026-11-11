@@ -24,6 +24,7 @@ enum dtPolyFlags : unsigned short
 };
 
 DLLEXPORT bool LoadNavMesh(char const* file, dtNavMesh** const mesh);
+DLLEXPORT bool LoadNavMeshWithTileCount(char const* file, dtNavMesh** const mesh, int* tilesInFile, int* tilesLoaded);
 DLLEXPORT bool FreeNavMesh(dtNavMesh* meshPtr);
 
 DLLEXPORT bool CreateNavMeshQuery(dtNavMesh* mesh, dtNavMeshQuery** const query);

@@ -32,7 +32,7 @@ namespace OpenDAoC.Pathing
             {
                 // Exercise a P/Invoke entry point so LibraryImport bindings are fully resolved.
                 IntPtr dummy = IntPtr.Zero;
-                DetourNative.LoadNavMesh("this file does not exist!", ref dummy);
+                DetourNative.LoadNavMeshWithTileCount("this file does not exist!", ref dummy, out _, out _);
                 error = null;
                 _ = loadedPath;
                 return true;
@@ -46,12 +46,22 @@ namespace OpenDAoC.Pathing
 
         public static DetourNavMesh? TryLoad(string path)
         {
+            return TryLoad(path, out _, out _);
+        }
+
+        // Fails if no tile could be added. Fewer tiles loaded than in the file means some were rejected
+        // (e.g. a file saved with 32-bit tile refs, while this library uses 64-bit refs).
+        public static DetourNavMesh? TryLoad(string path, out int tilesInFile, out int tilesLoaded)
+        {
+            tilesInFile = 0;
+            tilesLoaded = 0;
+
             if (string.IsNullOrWhiteSpace(path) || !File.Exists(path))
                 return null;
 
             IntPtr meshPtr = IntPtr.Zero;
 
-            if (!DetourNative.LoadNavMesh(Path.GetFullPath(path), ref meshPtr) || meshPtr == IntPtr.Zero)
+            if (!DetourNative.LoadNavMeshWithTileCount(Path.GetFullPath(path), ref meshPtr, out tilesInFile, out tilesLoaded) || meshPtr == IntPtr.Zero)
                 return null;
 
             return new(meshPtr);

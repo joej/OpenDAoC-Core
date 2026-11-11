@@ -10,7 +10,7 @@ using DOL.Logging;
 
 namespace DOL.GS
 {
-    public class EffectListComponent : IServiceObject
+    public class EffectListComponent : IServiceObject<EffectListComponent>
     {
         private static readonly Logger log = LoggerManager.Create(MethodBase.GetCurrentMethod().DeclaringType);
 
@@ -50,7 +50,7 @@ namespace DOL.GS
         protected EffectListComponent(GameLiving owner)
         {
             Owner = owner;
-            ServiceObjectId = new(this, ServiceObjectType.EffectListComponent);
+            ServiceObjectId = ServiceObjectFactory.CreateId(this);
         }
 
         public static EffectListComponent Create(GameLiving living)
@@ -90,7 +90,7 @@ namespace DOL.GS
         public void EndTick()
         {
             if (_pendingEffects.Count == 0)
-                ServiceObjectStore.Remove(this);
+                ServiceObjectId.Unregister();
         }
 
         public void TryEnableBestEffectOfSameType(ECSGameEffect effect)
@@ -424,7 +424,7 @@ namespace DOL.GS
         {
             lock (_effectsLock)
             {
-                ServiceObjectStore.Add(this);
+                ServiceObjectId.Register();
 
                 if (effect.IsStarting || effect.IsEnabling)
                     AddOrEnableEffect(effect);
@@ -517,6 +517,7 @@ namespace DOL.GS
                 try
                 {
                     bool start = effect.FinalizeState(result);
+                    component.RequestPlayerUpdate(EffectHelper.GetPlayerUpdateFromEffect(effect.EffectType));
 
                     component._pendingEffects.Enqueue(new(effect, effect.IsBeingReplaced, static (effect, start) =>
                     {
@@ -525,8 +526,8 @@ namespace DOL.GS
                             if (start)
                                 effect.OnStartEffect();
 
-                            ServiceObjectStore.Add(effect);
-                            effect.Owner.effectListComponent.RequestPlayerUpdate(EffectHelper.GetPlayerUpdateFromEffect(effect.EffectType));
+                            if (effect.ShouldBeRegistered)
+                                effect.ServiceObjectId.Register();
 
                             // Animations must be sent after calling `OnStartEffect` to prevent interrupts from interfering with them.
                             if (effect is ECSGameSpellEffect spellEffect and not ECSImmunityEffect)
@@ -717,9 +718,12 @@ namespace DOL.GS
                     else
                     {
                         // Replace the instance both in our list and in ServiceObjectStore.
-                        ServiceObjectStore.Remove(existingEffect);
+                        existingEffect.ServiceObjectId.Unregister();
                         existingEffect.IsBeingReplaced = true;
-                        ServiceObjectStore.Add(effect);
+
+                        if (effect.ShouldBeRegistered)
+                            effect.ServiceObjectId.Register();
+
                         existingEffects[i] = effect;
                         result = existingEffect.IsActive ? AddEffectResult.RenewedActive : AddEffectResult.RenewedDisabled;
                     }
@@ -911,6 +915,7 @@ namespace DOL.GS
                 try
                 {
                     bool stop = effect.FinalizeState(result);
+                    component.RequestPlayerUpdate(EffectHelper.GetPlayerUpdateFromEffect(effect.EffectType));
 
                     component._pendingEffects.Enqueue(new(effect, effect.IsBeingReplaced, static (effect, stop) =>
                     {
@@ -919,11 +924,9 @@ namespace DOL.GS
                             if (stop)
                                 effect.OnStopEffect();
 
-                            effect.Owner.effectListComponent.RequestPlayerUpdate(EffectHelper.GetPlayerUpdateFromEffect(effect.EffectType));
-
                             // Keep disabled effects in the store.
                             if (!effect.IsDisabled)
-                                ServiceObjectStore.Remove(effect);
+                                effect.ServiceObjectId.Unregister();
                         }
                         catch (Exception e)
                         {

@@ -4,9 +4,10 @@ using System.Threading;
 
 namespace DOL.GS
 {
-    public class ShardedServiceObjectArray<T> : ServiceObjectArrayBase<T>
-        where T : class, IShardedServiceObject
+    public class ShardedServiceObjectArray<T> : ServiceObjectArrayBase<T, ShardedServiceObjectId<T>>
+        where T : class, IShardedServiceObject<T>
     {
+        private readonly IExecutor _executor;
         private readonly List<SchedulableServiceObjectArray<T>> _shards;
         private readonly List<T>[] _shardsView;
         private readonly int[] _shardStartIndices;
@@ -20,13 +21,15 @@ namespace DOL.GS
         public override int[] ShardStartIndices => _shardStartIndices;
         public override int TotalValidCount => _totalValidCount;
 
-        public ShardedServiceObjectArray(int initialCapacity)
+        public ShardedServiceObjectArray(int initialCapacity, IExecutor executor)
         {
-            int shardCount = GameLoop.DegreeOfParallelism;
+            _executor = executor;
+
+            int shardCount = _executor.DegreeOfParallelism;
+            int capacityPerShard = initialCapacity / shardCount;
+
             _shards = new(shardCount);
             _shardsView = new List<T>[shardCount];
-
-            int capacityPerShard = initialCapacity / shardCount;
 
             for (int i = 0; i < shardCount; i++)
             {
@@ -38,39 +41,32 @@ namespace DOL.GS
             _updateShardView = shard => shard.UpdateAndGetView(_currentUpdateNow);
         }
 
-        private ServiceObjectArrayBase<T> RouteItem(T item)
+        private SchedulableServiceObjectArray<T> RouteItem(ShardedServiceObjectId<T> id)
         {
-            ServiceObjectId id = item.ServiceObjectId;
-
             if (id.ShardIndex == -1)
                 id.ShardIndex = (int) ((uint) Interlocked.Increment(ref _roundRobinCounter) % _shards.Count);
 
             return _shards[id.ShardIndex];
         }
 
-        protected override void Add(T item)
+        public override bool Add(ShardedServiceObjectId<T> id)
         {
-            Add(RouteItem(item), item);
+            return RouteItem(id).Add(id);
         }
 
-        protected override void Remove(T item)
+        public override bool Remove(ShardedServiceObjectId<T> id)
         {
-            Remove(RouteItem(item), item);
+            return id.ShardIndex != -1 && _shards[id.ShardIndex].Remove(id);
         }
 
-        protected override bool TryPrepareAdd(T item)
+        public override bool Reschedule(ShardedServiceObjectId<T> id)
         {
-            return TryPrepareAdd(RouteItem(item), item);
-        }
-
-        protected override bool TryPrepareRemove(T item)
-        {
-            return item.ServiceObjectId.ShardIndex != -1 && TryPrepareRemove(RouteItem(item), item);
+            return id.ShardIndex != -1 && _shards[id.ShardIndex].Reschedule(id);
         }
 
         protected override ServiceObjectView<T> UpdateAndGetView()
         {
-            GameLoop.ExecuteForEach(_shards, _shards.Count, _updateShardView);
+            _executor.ExecuteForEach(_shards, _shards.Count, _updateShardView);
 
             int currentTotal = 0;
 

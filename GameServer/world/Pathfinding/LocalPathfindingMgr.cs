@@ -61,18 +61,23 @@ namespace DOL.GS
                 }
             }
 
-            DetourNavMesh mesh = DetourNavMesh.TryLoad(path);
+            DetourNavMesh mesh = DetourNavMesh.TryLoad(path, out int tilesInFile, out int tilesLoaded);
 
             if (mesh == null)
             {
                 if (log.IsErrorEnabled)
-                    log.Error($"Loading NavMesh failed for zone {id}!");
+                    log.Error($"Loading NavMesh failed for zone {id}! ({tilesLoaded} of {tilesInFile} tiles loaded: {path})");
 
                 return;
             }
 
-            if (log.IsInfoEnabled)
-                log.Info($"Loading NavMesh successful for zone {id}");
+            if (tilesLoaded < tilesInFile)
+            {
+                if (log.IsWarnEnabled)
+                    log.Warn($"Loading NavMesh for zone {id}: only {tilesLoaded} of {tilesInFile} tiles loaded ({path})");
+            }
+            else if (log.IsInfoEnabled)
+                log.Info($"Loading NavMesh successful for zone {id} ({tilesLoaded} tiles)");
 
             lock (_navMeshesLock)
             {

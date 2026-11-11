@@ -26,7 +26,7 @@ namespace DOL.GS
 
             try
             {
-                _view = ServiceObjectStore.UpdateAndGetView<EffectListComponent>(ServiceObjectType.EffectListComponent);
+                _view = ServiceObjectStore.UpdateAndGetView<EffectListComponent>(GameLoop.GameLoopTime);
             }
             catch (Exception e)
             {
@@ -36,7 +36,7 @@ namespace DOL.GS
                 return;
             }
 
-            _view.ExecuteForEach(BeginTickInternal);
+            GameLoop.ExecuteView(_view, BeginTickInternal);
 
             if (Diagnostics.CheckServiceObjectCount)
                 Diagnostics.PrintServiceObjectCount(ServiceName, ref EntityCount, _view.TotalValidCount);
@@ -63,7 +63,7 @@ namespace DOL.GS
 
         public override void EndTick()
         {
-            _view.ExecuteForEach(EndTickInternal);
+            GameLoop.ExecuteView(_view, EndTickInternal);
         }
 
         private static void EndTickInternal(EffectListComponent effectListComponent)

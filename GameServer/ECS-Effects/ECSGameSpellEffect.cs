@@ -24,12 +24,15 @@ namespace DOL.GS
             SpellHandler = initParams.SpellHandler;
             Spell spell = SpellHandler.Spell;
             EffectType = EffectHelper.GetEffectFromSpell(SpellHandler.Spell);
-            PulseFreq = spell.Frequency;
+
+            // Frequency represents the proc chance for these spells.
+            if (EffectType is not (eEffect.OffensiveProc or eEffect.DefensiveProc))
+                PulseFreq = spell.Frequency;
 
             if (spell.IsSnare)
             {
                 PulseFreq = 250;
-                NextTick = 1 + Duration / 2 + StartTick + PulseFreq;
+                NextTick = Duration / 2 + StartTick + PulseFreq;
 
                 // Special case for focus snares (BD) since they share the same spell type as normal snares.
                 TriggersImmunity = EffectHelper.GetImmunityEffectFromSpell(spell) is not eEffect.Unknown && !spell.IsFocus;
@@ -45,7 +48,7 @@ namespace DOL.GS
 
         public override long GetNextTick()
         {
-            return NextTick > 0 && (PulseFreq > 0 || IsConcentrationEffect()) ? NextTick : base.GetNextTick();
+            return NextTick > 0 && PulseFreq > 0 ? NextTick : base.GetNextTick();
         }
 
         public override bool IsConcentrationEffect()

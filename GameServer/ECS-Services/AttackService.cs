@@ -25,7 +25,7 @@ namespace DOL.GS
 
             try
             {
-                _view = ServiceObjectStore.UpdateAndGetView<AttackComponent>(ServiceObjectType.AttackComponent);
+                _view = ServiceObjectStore.UpdateAndGetView<AttackComponent>(GameLoop.GameLoopTime);
             }
             catch (Exception e)
             {
@@ -35,7 +35,7 @@ namespace DOL.GS
                 return;
             }
 
-            _view.ExecuteForEach(TickInternal);
+            GameLoop.ExecuteView(_view, TickInternal);
 
             if (Diagnostics.CheckServiceObjectCount)
                 Diagnostics.PrintServiceObjectCount(ServiceName, ref EntityCount, _view.TotalValidCount);

@@ -42,7 +42,7 @@ namespace DOL.GS
 
                 try
                 {
-                    _view = ServiceObjectStore.UpdateAndGetView<GameClient>(ServiceObjectType.Client);
+                    _view = ServiceObjectStore.UpdateAndGetView<GameClient>(GameLoop.GameLoopTime);
                 }
                 catch (Exception e)
                 {
@@ -53,12 +53,12 @@ namespace DOL.GS
                 }
             }
 
-            _view.ExecuteForEach(BeginTickInternal);
+            GameLoop.ExecuteView(_view, BeginTickInternal);
         }
 
         public override void EndTick()
         {
-            _view.ExecuteForEach(EndTickInternal);
+            GameLoop.ExecuteView(_view, EndTickInternal);
 
             if (Diagnostics.CheckServiceObjectCount)
                 Diagnostics.PrintServiceObjectCount(ServiceName, ref EntityCount, _view.TotalValidCount);
@@ -181,7 +181,7 @@ namespace DOL.GS
             // Let's just overwrite the existing client. Most likely `OnClientDisconnect` was not called for some reason.
             _clientsBySessionId[client.SessionId.Value] = client;
 
-            if (ServiceObjectStore.Add(client))
+            if (client.ServiceObjectId.Register())
                 Interlocked.Increment(ref _clientCount);
             else if (log.IsWarnEnabled)
             {
@@ -201,7 +201,7 @@ namespace DOL.GS
 
             _clientsBySessionId[client.SessionId.Value] = null;
 
-            if (ServiceObjectStore.Remove(client))
+            if (client.ServiceObjectId.Unregister())
                 Interlocked.Decrement(ref _clientCount);
             else if (log.IsWarnEnabled)
             {
