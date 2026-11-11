@@ -37,6 +37,18 @@ struct dtNavMeshTileHeader
 
 DLLEXPORT bool LoadNavMesh(char const *file, dtNavMesh **const mesh)
 {
+	int tilesInFile, tilesLoaded;
+	return LoadNavMeshWithTileCount(file, mesh, &tilesInFile, &tilesLoaded);
+}
+
+// Fails if no tile could be added: a mesh with no tiles answers every query with failure.
+// A file with some bad tiles still loads; the caller can compare the two counts.
+DLLEXPORT bool LoadNavMeshWithTileCount(char const *file, dtNavMesh **const mesh, int *tilesInFile, int *tilesLoaded)
+{
+	*mesh = nullptr;
+	*tilesInFile = 0;
+	*tilesLoaded = 0;
+
 	// load the file
 	auto fp = std::fopen(file, "rb");
 	if (!fp)
@@ -47,11 +59,20 @@ DLLEXPORT bool LoadNavMesh(char const *file, dtNavMesh **const mesh)
 		auto _fpRAII = RAII([=]
 							{ std::fclose(fp); });
 
+		if (std::fseek(fp, 0, SEEK_END) != 0)
+			return false;
+		long fileSize = std::ftell(fp);
+		if (fileSize < 0 || std::fseek(fp, 0, SEEK_SET) != 0)
+			return false;
+
 		dtNavMeshSetHeader header;
-		fread(&header, sizeof(header), 1, fp);
+		if (std::fread(&header, sizeof(header), 1, fp) != 1)
+			return false;
 
 		if (header.magic != 0x4d534554 || header.version != 1)
 			return false;
+
+		*tilesInFile = header.numTiles;
 
 		// init mesh and query
 		*mesh = dtAllocNavMesh();
@@ -62,22 +83,37 @@ DLLEXPORT bool LoadNavMesh(char const *file, dtNavMesh **const mesh)
 			*mesh = nullptr;
 			return false;
 		}
-		if (header.numTiles > 0)
+
+		auto tileIdx = 0;
+		while (tileIdx < header.numTiles)
 		{
-			auto tileIdx = 0;
-			while (tileIdx < header.numTiles)
+			dtNavMeshTileHeader tileHeader;
+			if (std::fread(&tileHeader, sizeof(tileHeader), 1, fp) != 1)
+				break;
+			if (tileHeader.ref == 0 || tileHeader.size <= 0 || tileHeader.size > fileSize - std::ftell(fp))
+				break;
+			void *data = dtAlloc(tileHeader.size, DT_ALLOC_PERM);
+			if (!data)
+				break;
+			if (std::fread(data, tileHeader.size, 1, fp) != 1)
 			{
-				dtNavMeshTileHeader tileHeader;
-				fread(&tileHeader, sizeof(tileHeader), 1, fp);
-				void *data;
-				if (tileHeader.ref == 0 || tileHeader.size == 0 || (data = dtAlloc(tileHeader.size, DT_ALLOC_PERM)) == 0)
-					break;
-				memset(data, 0, tileHeader.size);
-				fread(data, tileHeader.size, 1, fp);
-				(*mesh)->addTile((unsigned char *)data, tileHeader.size, 1, tileHeader.ref, nullptr);
-				tileIdx += 1;
+				dtFree(data);
+				break;
 			}
+			// The mesh owns the data only if the tile was added.
+			if (dtStatusSucceed((*mesh)->addTile((unsigned char *)data, tileHeader.size, DT_TILE_FREE_DATA, tileHeader.ref, nullptr)))
+				*tilesLoaded += 1;
+			else
+				dtFree(data);
+			tileIdx += 1;
 		}
+	}
+
+	if (*tilesLoaded == 0)
+	{
+		dtFreeNavMesh(*mesh);
+		*mesh = nullptr;
+		return false;
 	}
 	return true;
 }

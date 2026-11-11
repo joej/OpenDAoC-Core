@@ -20,6 +20,11 @@ namespace OpenDAoC.Pathing
         [return: MarshalAs(UnmanagedType.Bool)]
         public static partial bool LoadNavMesh(string file, ref IntPtr meshPtr);
 
+        [LibraryImport(LIBRARY_NAME, StringMarshalling = StringMarshalling.Custom, StringMarshallingCustomType = typeof(AnsiStringMarshaller))]
+        [UnmanagedCallConv(CallConvs = [typeof(CallConvCdecl)])]
+        [return: MarshalAs(UnmanagedType.Bool)]
+        public static partial bool LoadNavMeshWithTileCount(string file, ref IntPtr meshPtr, out int tilesInFile, out int tilesLoaded);
+
         [LibraryImport(LIBRARY_NAME)]
         [UnmanagedCallConv(CallConvs = [typeof(CallConvCdecl)])]
         [return: MarshalAs(UnmanagedType.Bool)]
