@@ -27,7 +27,7 @@ namespace DOL.GS.Keeps
         public int TowerNum => DoorId / 10000 % 10;
         public int KeepID => OwnerKeepID + TowerNum * 256;
         public int ComponentID => DoorId / 100 % 100;
-        public int DoorIndex => DoorId % 10;
+        public int DoorIndex => DoorId % 100;
 
         /// <summary>
         /// This flag is send in packet(keep door = 4, regular door = 0)
@@ -494,36 +494,23 @@ namespace DOL.GS.Keeps
 
         public int GenerateDoorID()
         {
-            int doortype = 7;
-            int ownerKeepID = 0;
-            int towerIndex = 0;
-
-            if (m_component.Keep is GameKeepTower)
-            {
-                GameKeepTower tower = m_component.Keep as GameKeepTower;
-
-                if (tower.Keep != null)
-                    ownerKeepID = tower.Keep.KeepID;
-                else
-                    ownerKeepID = tower.OwnerKeepID;
-
-                towerIndex = tower.KeepID >> 8;
-            }
-            else
-                ownerKeepID = m_component.Keep.KeepID;
-
-            int componentID = m_component.ID;
-
-            //index not sure yet
+            int keepId = m_component.Keep.KeepID;
+            int componentId = m_component.ID;
             int doorIndex = Position.TemplateType;
-            int id = 0;
-            //add door type
-            id += doortype * 100000000;
-            id += ownerKeepID * 100000;
-            id += towerIndex * 10000;
-            id += componentID * 100;
-            id += doorIndex;
-            return id;
+
+            if (keepId >> 8 > 9 || componentId is < 0 or > 99 || doorIndex is < 0 or > 99)
+                log.Warn($"Keep door (KeepID {keepId}, component {componentId}, door {doorIndex}) doesn't fit the client's door ID format. Players won't be able to use it.");
+
+            return GetKeepDoorId(keepId, componentId, doorIndex);
+        }
+
+        /// <summary>
+        /// The ID the client uses for a keep door: 7, then KeepID &amp; 0xFF (3 digits), KeepID &gt;&gt; 8 (1 digit), the component ID (2 digits)
+        /// and the door's number in the component's model (2 digits).
+        /// </summary>
+        public static int GetKeepDoorId(int keepId, int componentId, int doorIndex)
+        {
+            return 700000000 + (keepId & 0xFF) * 100000 + (keepId >> 8) * 10000 + componentId * 100 + doorIndex;
         }
 
         #endregion
