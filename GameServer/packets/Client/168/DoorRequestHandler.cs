@@ -48,7 +48,7 @@ namespace DOL.GS.PacketHandler.Client.v168
                     int towerNum = doorId / 10000 % 10;
                     int keepID = ownerKeepId + towerNum * 256;
                     int componentID = doorId / 100 % 100;
-                    int doorIndex = doorId % 10;
+                    int doorIndex = doorId % 100;
                     client.Out.SendDebugMessage($"Keep Door ID:{doorId} state:{doorState} (Owner Keep:{ownerKeepId} KeepID:{keepID} ComponentID:{componentID} DoorIndex:{doorIndex} TowerNumber:{towerNum})");
 
                     if (keepID > 255 && ownerKeepId < 10)
